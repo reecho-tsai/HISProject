@@ -1,0 +1,171 @@
+<template>
+  <div>
+    <Breadcrumb msg1="基本信息管理" msg2="挂号级别列表" />
+
+    <!-- 卡片视图区域 -->
+    <el-card>
+      <el-row :gutter="10">
+        <el-col :span="10">
+          <el-input v-model="queryInfo.name" placeholder="请输入要查的挂号级别名" clearable @clear="getData">
+            <el-button slot="append" icon="el-icon-search" @click="getData"></el-button>
+          </el-input>
+        </el-col>
+        <el-col :span="14">
+          <el-button type="primary" icon="el-icon-circle-plus-outline" plain @click="add()">添加挂号级别</el-button>
+          <el-button type="warning" icon="el-icon-delete" plain @click="batchdel()">批量删除</el-button>
+        </el-col>
+      </el-row>
+
+      <el-table
+        :data="tableData"
+        style="width: 100%"
+        @selection-change="handleSelectionChange"
+      >
+        <el-table-column type="selection"></el-table-column>
+        <el-table-column label="ID" width="80" prop="id"></el-table-column>
+        <el-table-column label="挂号级别" prop="name"></el-table-column>
+        <el-table-column label="医生类型">
+          <template slot-scope="scope">
+             {{scope.row.roleId?roles[scope.row.roleId].name:''}}
+          </template>
+        </el-table-column>
+        <el-table-column label="问诊金额" prop="fee"></el-table-column>
+        <el-table-column label="创建时间" prop="createtime"> </el-table-column>
+        <el-table-column label="是否有效">
+          <template slot-scope="scope">
+            <el-switch
+              :value="scope.row.active === 1"
+              active-color="#13ce66"
+              inactive-color="#ff4949"
+              @change="stateChanged(scope.row)"
+              >
+            </el-switch>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="操作" width="220px">
+          <template slot-scope="scope">
+              <el-button type="primary" icon="el-icon-edit" circle @click="handleEdit(scope.row.id)"></el-button>
+              <el-button type="danger" icon="el-icon-delete" circle  @click="handleDelete(scope.row.id)"></el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <!-- 分页区域 -->
+      <el-pagination
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+        :current-page="queryInfo.page"
+        :page-sizes="[3, 5, 10, 20]"
+        :page-size="queryInfo.limit"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="total"
+      ></el-pagination>
+    </el-card>
+
+    <el-dialog :title="title" :visible.sync="show" :close-on-click-modal="false" width="500px">
+      <RegistlevelEdit v-if="show" :show.sync="show" @getData="getData()" :editid="editid"></RegistlevelEdit>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import RegistlevelEdit from '@/components/registlevel/edit.vue'
+import Breadcrumb from '@/components/Breadcrumb'
+import { mapState } from 'vuex'
+export default {
+  data () {
+    return {
+      queryInfo: {
+        name: '',
+        page: 1,
+        limit: 5
+      },
+      tableData: [],
+      total: 0,
+      show: false,
+      editid: null,
+      selectedrow: [],
+      title: ''
+    }
+  },
+  components: {
+    RegistlevelEdit,
+    Breadcrumb
+  },
+  created () {
+    this.getData()
+    this.$store.dispatch('getRoles')
+  },
+  computed: {
+    ...mapState(['roles'])
+  },
+  methods: {
+    getData () {
+      this.$axios.get('/registLevels',
+        response => {
+          this.tableData = response.data.records
+          this.total = parseInt(response.data.total)
+        },
+        this.queryInfo
+      )
+    },
+    handleEdit (id) {
+      this.title = '修改挂号级别'
+      this.editid = id
+      this.show = true
+    },
+    add () {
+      this.title = '添加挂号级别'
+      this.editid = null
+      this.show = true
+    },
+    handleDelete (id) {
+      this.$axios.del(`/registLevels/${id}`, () => {
+        if (this.total === (this.queryInfo.page - 1) * this.queryInfo.limit + 1) this.queryInfo.page -= 1
+        this.getData()
+      })
+    },
+    handleSelectionChange (val) {
+      // val参数为所有选中行的数据
+      this.selectedrow = val // [ {} ,{} ,{}    ]
+    },
+    batchdel () {
+      if (this.selectedrow.length === 0) {
+        this.$message('没有任何被选中的数据')
+      } else {
+        const ids = []
+        for (let i = 0; i < this.selectedrow.length; i++) {
+          ids.push(this.selectedrow[i].id)
+        }
+        this.$axios.del('/registLevels/batchdel',
+          () => {
+            if (this.total === (this.queryInfo.page - 1) * this.queryInfo.limit + ids.length) this.queryInfo.page -= 1
+            this.getData()
+          },
+          {
+            ids: ids.join(',')
+          }
+        )
+      }
+    },
+    handleSizeChange (newSize) {
+      this.queryInfo.limit = newSize
+      this.getData()
+    },
+    // 监听 页码值 改变的事件
+    handleCurrentChange (newPage) {
+      this.queryInfo.page = newPage
+      this.getData()
+    },
+    // 监听 switch 开关状态的改变
+    stateChanged (info) {
+      const active = info.active === 1 ? 0 : 1
+      this.$axios.put(`/registLevels/${info.id}/state/${active}`, response => {
+        info.active = active
+      })
+    }
+  }
+}
+</script>
+<style scoped>
+</style>

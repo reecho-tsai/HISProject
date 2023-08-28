@@ -1,0 +1,33 @@
+# 端口配置
+server:
+  port: 8088
+
+# 数据源配置
+spring:
+  datasource:
+    # 驱动程序名
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+    username: HisVuePwd
+    password: HisVuePwd
+    url: jdbc:mysql://81.70.147.159:3306/hisvue?useSSL=false&serverTimezone=Asia/Shanghai
+  banner:
+    location: Banner.txt
+
+
+# mybatis-plus配置
+mybatis-plus:
+  global-config:
+    # 控制台 不打印 mybatis-plus 的 LOGO
+    banner: false
+  configuration:
+    map-underscore-to-camel-case: true
+    # 如果查询结果中包含空值的列，则 MyBatis 在映射的时候，不会映射这个字段
+    call-setters-on-nulls: true
+    # 这个配置会将执行的sql打印出来，在开发或测试的时候可以用
+    #log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+  level:
+    com.neu.his.controller: ERROR
+    # OFF、FATAL、ERROR、WARN、INFO、DEBUG、ALL只建议使用四个：ERROR、WARN、INFO、DEBUG
